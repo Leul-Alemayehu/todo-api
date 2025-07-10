@@ -35,7 +35,7 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'required|string|max:255|unique:tasks,title,NULL,id,user_id,' . auth()->id(),
             'description' => 'nullable|string',
             'completed' => 'sometimes|boolean',
             'tags' => 'array',
@@ -69,7 +69,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
+            'title' => 'sometimes|string|max:255|unique:tasks,title,' . $task->id . ',id,user_id,' . auth()->id(),
             'description' => 'nullable|string',
             'completed' => 'sometimes|boolean',
             'tags' => 'sometimes|array',
