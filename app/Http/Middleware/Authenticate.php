@@ -1,18 +1,13 @@
 <?php
 
 namespace App\Http\Middleware;
+use Illuminate\Auth\Middleware\Authenticate as Middleware;
 
-use Closure;
-use Illuminate\Http\Request;
-
-class Authenticate
+class Authenticate extends Middleware
 {
-    public function handle(Request $request, Closure $next, ...$guards)
+    protected function unauthenticated($request, array $guards)
     {
-        if (! $request->user()) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
-        return $next($request);
+        abort(response()->json(['message' => 'Unauthenticated.'], 401));
     }
 }
+
