@@ -2,34 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TagResource;
 use Illuminate\Http\Request;
+use App\Models\Tag;
 
 class TagController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return auth()->user()->tags()->latest()->get();
-    }
+        // get the number of items per page from the request, or use a default (e.g., 15)
+        $perPage = $request->input('per_page', 15);
 
-    public function store(Request $request)
-    {
-        //
-    }
+        $tags = Tag::paginate($perPage); // pagination
 
-    public function show(string $id)
-    {
-        //
+        return TagResource::collection($tags);
     }
-
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    public function destroy(string $id)
-    {
-        //
-    }
-
 
 }

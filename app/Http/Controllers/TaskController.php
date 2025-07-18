@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use Illuminate\Http\Request;
 
@@ -22,14 +23,13 @@ class TaskController extends Controller
         if ($request->filled('tags')) {
             $tagNames = explode(',', $request->tags);
             foreach ($tagNames as $tagName) {
-                $query->whereHas('tags', function ($q) use ($tagName, $user) {
-                    $q->where('name', $tagName)
-                        ->where('user_id', $user->id);
+                $query->whereHas('tags', function ($q) use ($tagName) {
+                    $q->where('name', $tagName);
                 });
             }
         }
 
-        return $query->get();
+        return TaskResource::collection($query->paginate(10));
     }
 
     public function store(Request $request)
@@ -47,21 +47,21 @@ class TaskController extends Controller
         if (!empty($data['tags'])) {
             $tagIds = collect($data['tags'])->map(function ($tagName) {
                 return \App\Models\Tag::firstOrCreate(
-                    ['name' => $tagName, 'user_id' => auth()->id()]
+                    ['name' => $tagName]
                 )->id;
             });
 
             $task->tags()->sync($tagIds);
         }
 
-        return response()->json($task->load('tags'), 201);
+        return (new TaskResource($task->load('tags')))->response()->setStatusCode(201);
     }
 
     public function show(Task $task)
     {
         $this->authorize('view', $task);
 
-        return $task;
+        return new TaskResource($task);
     }
 
     public function update(Request $request, Task $task)
@@ -79,7 +79,7 @@ class TaskController extends Controller
         if (array_key_exists('tags', $data)) {
             $tagIds = collect($data['tags'])->map(function ($tagName) {
                 return \App\Models\Tag::firstOrCreate(
-                    ['name' => $tagName, 'user_id' => auth()->id()]
+                    ['name' => $tagName]
                 )->id;
             });
 
@@ -88,7 +88,7 @@ class TaskController extends Controller
 
         $task->update($data);
 
-        return response()->json($task);
+        return new TaskResource($task->load('tags'));
     }
 
     public function destroy(Task $task)

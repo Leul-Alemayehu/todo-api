@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tag_task', function (Blueprint $table) {
             $table->foreignId('task_id')->constrained()->onDelete('cascade');
             $table->foreignId('tag_id')->constrained()->onDelete('cascade');
-            $table->primary(['task_id', 'tag_id']);
+            $table->unique(['task_id', 'tag_id']);
         });
     }
 
