@@ -11,8 +11,10 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-
-        $query = $user->tasks()->with('tags')->latest();
+        $this->authorize('viewAny', Task::class);
+        $query = Task::query();
+        $query->where('user_id',$user->id);
+        $query->with('tags')->latest();
 
         // Filter by title
         if ($request->filled('title')) {
@@ -34,6 +36,8 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Task::class);
+
         $data = $request->validate([
             'title' => 'required|string|max:255|unique:tasks,title,NULL,id,user_id,' . auth()->id(),
             'description' => 'nullable|string',
@@ -66,7 +70,7 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
-        $this->authorize('view', $task);
+        $this->authorize('update', $task);
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255|unique:tasks,title,' . $task->id . ',id,user_id,' . auth()->id(),
@@ -93,7 +97,7 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
-        $this->authorize('view', $task);
+        $this->authorize('delete', $task);
 
         $task->delete();
 
