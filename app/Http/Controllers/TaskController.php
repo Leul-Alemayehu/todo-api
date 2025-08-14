@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use App\DTOs\TaskData;
 
 class TaskController extends Controller
 {
@@ -38,7 +39,7 @@ class TaskController extends Controller
     {
         $this->authorize('create', Task::class);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255|unique:tasks,title,NULL,id,user_id,' . auth()->id(),
             'description' => 'nullable|string',
             'completed' => 'sometimes|boolean',
@@ -46,10 +47,12 @@ class TaskController extends Controller
             'tags.*' => 'string|max:50'
         ]);
 
-        $task = auth()->user()->tasks()->create($data);
+        $taskdata = new TaskData($validated);
 
-        if (!empty($data['tags'])) {
-            $tagIds = collect($data['tags'])->map(function ($tagName) {
+        $task = auth()->user()->tasks()->create($taskdata->toArray());
+
+        if (!empty($taskdata->tags)) {
+            $tagIds = collect($taskdata->tags)->map(function ($tagName) {
                 return \App\Models\Tag::firstOrCreate(
                     ['name' => $tagName]
                 )->id;
@@ -70,9 +73,9 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
-        $this->authorize('update', $task);
+        $this->authorize('view', $task);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'title' => 'sometimes|string|max:255|unique:tasks,title,' . $task->id . ',id,user_id,' . auth()->id(),
             'description' => 'nullable|string',
             'completed' => 'sometimes|boolean',
@@ -80,17 +83,20 @@ class TaskController extends Controller
             'tags.*' => 'string|max:50',
         ]);
 
-        if (array_key_exists('tags', $data)) {
-            $tagIds = collect($data['tags'])->map(function ($tagName) {
-                return \App\Models\Tag::firstOrCreate(
-                    ['name' => $tagName]
-                )->id;
-            });
+        $updateData = new TaskData($validated);
 
+        $task->update(array_filter([
+            'title' => $updateData->title,
+            'description' => $updateData->description,
+            'completed' => $updateData->completed,
+        ], fn($v) => !is_null($v)));
+
+        if (isset($updateData->tags)) {
+            $tagIds = collect($updateData->tags)->map(fn($tagName) =>
+            \App\Models\Tag::firstOrCreate(['name' => $tagName])->id
+            );
             $task->tags()->sync($tagIds);
         }
-
-        $task->update($data);
 
         return new TaskResource($task->load('tags'));
     }
